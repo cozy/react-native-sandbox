@@ -1,0 +1,87 @@
+import RNRestart from 'react-native-restart';
+
+import { platformReactNative } from './platformReactNative';
+
+import CozyClient, { CozyLink, StackLink } from 'cozy-client';
+import Minilog from 'cozy-minilog';
+import { default as PouchLink } from 'cozy-pouch-link';
+
+const log = Minilog('🔗 GetLinks');
+
+export const REPLICATION_DEBOUNCE = 5 * 1000; // 5 min
+export const REPLICATION_DEBOUNCE_MAX_DELAY = 10 * 1000; // 10min
+
+// The io.cozy.jobs are intentionnaly skipped from this list
+export const offlineDoctypes = [
+  'io.cozy.permissions',
+  'io.cozy.bills',
+  'io.cozy.sharings',
+  'io.cozy.accounts',
+  'io.cozy.apps',
+  'io.cozy.contacts',
+  'io.cozy.files',
+  'io.cozy.files.shortcuts',
+  'io.cozy.konnectors',
+  'io.cozy.settings',
+  'io.cozy.apps.suggestions',
+  'io.cozy.triggers',
+  'io.cozy.apps_registry',
+
+  // app specific
+  'io.cozy.mespapiers.settings',
+  'io.cozy.files.settings',
+  'io.cozy.home.settings',
+];
+
+export const getLinks = (): CozyLink[] => {
+  const pouchLinkOptions = {
+    doctypes: offlineDoctypes,
+    initialSync: false,
+    periodicSync: false,
+    syncDebounceDelayInMs: REPLICATION_DEBOUNCE,
+    syncDebounceMaxDelayInMs: REPLICATION_DEBOUNCE_MAX_DELAY,
+    platform: platformReactNative,
+    ignoreWarmup: true,
+    doctypesReplicationOptions: Object.fromEntries(
+      offlineDoctypes.map(doctype => {
+        return [
+          doctype,
+          {
+            strategy: 'fromRemote',
+          },
+        ];
+      })
+    ),
+    pouch: {
+      options: {
+        adapter: 'react-native-sqlite',
+      },
+    },
+  };
+
+  const stackLink = new StackLink({
+    platform: platformReactNative,
+  });
+
+  const pouchLink = new PouchLink({
+    ...pouchLinkOptions,
+  });
+
+  return [stackLink, pouchLink];
+};
+
+export const resetLinksAndRestart = async (
+  client?: CozyClient
+): Promise<void> => {
+  if (!client) {
+    log.info('ResetLinksAndRestart called with no client, return');
+    return;
+  }
+
+  for (const link of client.links) {
+
+    await link.reset();
+  }
+
+  RNRestart.Restart();
+};

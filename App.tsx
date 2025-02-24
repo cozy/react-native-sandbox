@@ -5,9 +5,10 @@
  * @format
  */
 
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type {PropsWithChildren} from 'react';
 import {
+  Button,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -25,35 +26,65 @@ import {
   ReloadInstructions,
 } from 'react-native/Libraries/NewAppScreen';
 
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
+import { CozyProvider, Q, useClient } from 'cozy-client';
+import { getClient } from './src/getClient';
+import { triggerPouchReplication } from './src/utils';
 
-function Section({children, title}: SectionProps): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
+const Tester = () => {
+  const client  = useClient();
+
+  const doTest = async () => {
+    try {
+
+      console.log('doTest', client?.getStackClient().uri);
+      const begin = performance.now()
+      const result = await client?.query(Q('io.cozy.files').limitBy(100))
+      const end = performance.now()
+      console.log('⏰ duration:', (end - begin))
+  
+      console.log('🌈 result', result.data?.length)
+    } catch (error) {
+      console.log('error', error)
+    }
+  };
+
   return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
+    <Button title="small" onPress={() => doTest()} />
   );
-}
+};
+
+const ClientHandler = () => {
+  const [client, setClient] = useState(undefined);
+
+  useEffect(() => {
+    const handleClientInit = async () => {
+      try {
+        console.log('🌈 getClient')
+        const existingClient = await getClient();
+        // existingClient.startReplicationWithDebounce()
+        triggerPouchReplication(existingClient)
+        console.log('🌈 existingClient', existingClient)
+        setClient(existingClient || null);
+      } catch (error) {
+        console.log('🌈 failed to get cient', error)
+        setClient(null);
+      }
+    };
+
+    handleClientInit();
+  }, []);
+
+  console.log('client?', client)
+  if (client) {
+    return (
+      <CozyProvider client={client}>
+          <Tester />
+      </CozyProvider>
+    );
+  }
+
+  return null;
+};
 
 function App(): React.JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';
@@ -74,22 +105,10 @@ function App(): React.JSX.Element {
         <Header />
         <View
           style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
+            backgroundColor: '#FF0000',//isDarkMode ? Colors.black : Colors.white,
+            height: 150
           }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
+            <ClientHandler />
         </View>
       </ScrollView>
     </SafeAreaView>
