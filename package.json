@@ -7,7 +7,8 @@
     "ios": "react-native run-ios",
     "lint": "eslint .",
     "start": "react-native start",
-    "test": "jest"
+    "test": "jest",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "@craftzdog/pouchdb-collate-react-native": "^7.3.0",
@@ -22,6 +23,7 @@
     "cozy-pouch-link": "^55.1.0",
     "cozy-realtime": "^5.6.4",
     "events": "^3.3.0",
+    "patch-package": "^8.0.0",
     "pouchdb-adapter-http": "^9.0.0",
     "pouchdb-adapter-react-native-sqlite": "^4.0.5",
     "pouchdb-core": "^9.0.0",

@@ -1,0 +1,129 @@
+diff --git a/node_modules/@op-engineering/op-sqlite/lib/commonjs/index.js b/node_modules/@op-engineering/op-sqlite/lib/commonjs/index.js
+index 55fd580..8e8eac0 100644
+--- a/node_modules/@op-engineering/op-sqlite/lib/commonjs/index.js
++++ b/node_modules/@op-engineering/op-sqlite/lib/commonjs/index.js
+@@ -1,5 +1,6 @@
+ "use strict";
+ 
++console.log('🐬 LOAD COMMONJS')
+ Object.defineProperty(exports, "__esModule", {
+   value: true
+ });
+@@ -134,6 +135,7 @@ function enhanceDB(db, options) {
+       delete locks[options.url];
+     },
+     execute: (query, params) => {
++      console.log('🐬 execute')
+       const sanitizedParams = params?.map(p => {
+         if (ArrayBuffer.isView(p)) {
+           return p.buffer;
+@@ -145,6 +147,7 @@ function enhanceDB(db, options) {
+       return result;
+     },
+     executeAsync: async (query, params) => {
++      console.log('🐬 execute async')
+       const sanitizedParams = params?.map(p => {
+         if (ArrayBuffer.isView(p)) {
+           return p.buffer;
+diff --git a/node_modules/@op-engineering/op-sqlite/lib/module/index.js b/node_modules/@op-engineering/op-sqlite/lib/module/index.js
+index 662b48b..0485383 100644
+--- a/node_modules/@op-engineering/op-sqlite/lib/module/index.js
++++ b/node_modules/@op-engineering/op-sqlite/lib/module/index.js
+@@ -1,5 +1,6 @@
+ // import NativeOPSQLite from './NativeOPSQLite';
+ import { NativeModules } from 'react-native';
++console.log('🐬 LOAD MODULE')
+ if (global.__OPSQLiteProxy == null) {
+   if (NativeModules.OPSQLite == null) {
+     throw new Error('Base module not found. Maybe try rebuilding the app.');
+@@ -123,6 +124,7 @@ function enhanceDB(db, options) {
+       delete locks[options.url];
+     },
+     execute: (query, params) => {
++      console.log('🐬 execute Module')
+       const sanitizedParams = params?.map(p => {
+         if (ArrayBuffer.isView(p)) {
+           return p.buffer;
+@@ -134,6 +136,7 @@ function enhanceDB(db, options) {
+       return result;
+     },
+     executeAsync: async (query, params) => {
++      console.log('🐬 execute async Module')
+       const sanitizedParams = params?.map(p => {
+         if (ArrayBuffer.isView(p)) {
+           return p.buffer;
+diff --git a/node_modules/@op-engineering/op-sqlite/src/index.ts b/node_modules/@op-engineering/op-sqlite/src/index.ts
+index 4eb3969..5f24d24 100644
+--- a/node_modules/@op-engineering/op-sqlite/src/index.ts
++++ b/node_modules/@op-engineering/op-sqlite/src/index.ts
+@@ -1,6 +1,7 @@
+ // import NativeOPSQLite from './NativeOPSQLite';
+ import { NativeModules } from 'react-native';
+ 
++console.log('🐬 LOAD SRC')
+ declare global {
+   function nativeCallSyncHook(): unknown;
+   var __OPSQLiteProxy: object | undefined;
+@@ -276,6 +277,8 @@ function enhanceDB(db: DB, options: any): DB {
+       delete locks[options.url];
+     },
+     execute: (query: string, params?: any[] | undefined): QueryResult => {
++
++      console.log('🐬 execute SRC')
+       const sanitizedParams = params?.map((p) => {
+         if (ArrayBuffer.isView(p)) {
+           return p.buffer;
+@@ -292,6 +295,7 @@ function enhanceDB(db: DB, options: any): DB {
+       query: string,
+       params?: any[] | undefined
+     ): Promise<QueryResult> => {
++      console.log('🐬 execute async SRC')
+       const sanitizedParams = params?.map((p) => {
+         if (ArrayBuffer.isView(p)) {
+           return p.buffer;
+@@ -300,11 +304,16 @@ function enhanceDB(db: DB, options: any): DB {
+         return p;
+       });
+ 
++      const begin = performance.now()
+       const result = await db.executeAsync(query, sanitizedParams);
++      const end = performance.now()
++      console.log('🐬 executeAsync took', (end - begin), 'ms')
++      // console.log('🐬 executeAsync result', JSON.stringify(result))
+       enhanceQueryResult(result);
+       return result;
+     },
+     prepareStatement: (query: string) => {
++      console.log('🐬 prepareStatement SRC')
+       const stmt = db.prepareStatement(query);
+ 
+       return {
+@@ -329,10 +338,12 @@ function enhanceDB(db: DB, options: any): DB {
+     transaction: async (
+       fn: (tx: Transaction) => Promise<void>
+     ): Promise<void> => {
++      console.log('🐬 transaction SRC')
+       let isFinalized = false;
+ 
+       // Local transaction context object implementation
+       const execute = (query: string, params?: any[]): QueryResult => {
++        console.log('🐬 transaction execute SRC')
+         if (isFinalized) {
+           throw Error(
+             `OP-Sqlite Error: Database: ${options.url}. Cannot execute query on finalized transaction`
+@@ -342,6 +353,7 @@ function enhanceDB(db: DB, options: any): DB {
+       };
+ 
+       const executeAsync = (query: string, params?: any[] | undefined) => {
++        console.log('🐬 transaction executeAsync SRC')
+         if (isFinalized) {
+           throw Error(
+             `OP-Sqlite Error: Database: ${options.url}. Cannot execute query on finalized transaction`
+@@ -373,6 +385,7 @@ function enhanceDB(db: DB, options: any): DB {
+       };
+ 
+       async function run() {
++        console.log('🐬 transaction run SRC')
+         try {
+           await enhancedDb.executeAsync('BEGIN TRANSACTION;');
+ 

@@ -1,0 +1,85 @@
+diff --git a/node_modules/pouchdb-adapter-react-native-sqlite/src/core.ts b/node_modules/pouchdb-adapter-react-native-sqlite/src/core.ts
+index ffa5228..cdbfbbe 100644
+--- a/node_modules/pouchdb-adapter-react-native-sqlite/src/core.ts
++++ b/node_modules/pouchdb-adapter-react-native-sqlite/src/core.ts
+@@ -108,10 +108,13 @@ function SqlPouch(opts: OpenDatabaseOptions, cb: (err: any) => void) {
+   }
+ 
+   async function transaction(fn: (tx: Transaction) => Promise<void>) {
++    
++  console.log('🐶 transaction')
+     return txnQueue.push(fn)
+   }
+ 
+   async function readTransaction(fn: (tx: Transaction) => Promise<void>) {
++    console.log('🐶 readTransaction')
+     return txnQueue.pushReadOnly(fn)
+   }
+ 
+@@ -397,6 +400,7 @@ function SqlPouch(opts: OpenDatabaseOptions, cb: (err: any) => void) {
+     }
+ 
+     readTransaction(async (tx: Transaction) => {
++      const begin = performance.now()
+       const processResult = (rows: any[], results: any[], keys: any) => {
+         for (let i = 0, l = rows.length; i < l; i++) {
+           const item = rows[i]
+@@ -524,6 +528,8 @@ function SqlPouch(opts: OpenDatabaseOptions, cb: (err: any) => void) {
+         if (opts.update_seq) {
+           returnVal.update_seq = updateSeq
+         }
++        const end = performance.now()
++        console.log('🐶 _allDocs readTransaction took', (end - begin), 'ms')
+         callback(null, returnVal)
+       } catch (e: any) {
+         handleSQLiteError(e, callback)
+diff --git a/node_modules/pouchdb-adapter-react-native-sqlite/src/openDatabase.ts b/node_modules/pouchdb-adapter-react-native-sqlite/src/openDatabase.ts
+index 6cdffb7..7e984d8 100644
+--- a/node_modules/pouchdb-adapter-react-native-sqlite/src/openDatabase.ts
++++ b/node_modules/pouchdb-adapter-react-native-sqlite/src/openDatabase.ts
+@@ -16,6 +16,7 @@ type OpenDatabaseResult =
+ const cachedDatabases = new Map<string, OpenDatabaseResult>()
+ 
+ function openDBSafely(opts: OpenDatabaseOptions): OpenDatabaseResult {
++  console.log('🐶 openDBSafely')
+   try {
+     const db = open(opts)
+     const transactionQueue = new TransactionQueue(db)
+@@ -26,6 +27,7 @@ function openDBSafely(opts: OpenDatabaseOptions): OpenDatabaseResult {
+ }
+ 
+ function openDB(opts: OpenDatabaseOptions) {
++  console.log('🐶 openDB')
+   let cachedResult: OpenDatabaseResult | undefined = cachedDatabases.get(
+     opts.name
+   )
+@@ -37,6 +39,7 @@ function openDB(opts: OpenDatabaseOptions) {
+ }
+ 
+ export function closeDB(name: string) {
++  console.log('🐶 closeDB')
+   const cachedResult = cachedDatabases.get(name)
+   if (cachedResult) {
+     if ('db' in cachedResult) {
+diff --git a/node_modules/pouchdb-adapter-react-native-sqlite/src/transactionQueue.ts b/node_modules/pouchdb-adapter-react-native-sqlite/src/transactionQueue.ts
+index da3cf9b..be7fc20 100644
+--- a/node_modules/pouchdb-adapter-react-native-sqlite/src/transactionQueue.ts
++++ b/node_modules/pouchdb-adapter-react-native-sqlite/src/transactionQueue.ts
+@@ -33,13 +33,17 @@ export class TransactionQueue {
+       setImmediate(async () => {
+         try {
+           if (tx.readonly) {
++            console.log('🐶 setImmediate')
+             logger.debug('---> transaction start!')
++            const begin = performance.now()
+             await tx.start({
+               commit: () => ({ rowsAffected: 0 }),
+               execute: this.db.execute.bind(this.db),
+               executeAsync: this.db.executeAsync.bind(this.db),
+               rollback: () => ({ rowsAffected: 0 }),
+             })
++            const end = performance.now()
++            console.log('🐶 setImmediate took', (end - begin), 'ms')
+           } else {
+             logger.debug('---> write transaction start!')
+             await this.db.transaction(tx.start)
