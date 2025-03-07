@@ -5,51 +5,59 @@
  * @format
  */
 
-import React, { useState, useEffect, useRef } from 'react';
-import type {PropsWithChildren} from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Button,
   SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
-  Text,
   useColorScheme,
   View,
 } from 'react-native';
 
 import {
   Colors,
-  DebugInstructions,
   Header,
-  LearnMoreLinks,
-  ReloadInstructions,
 } from 'react-native/Libraries/NewAppScreen';
 
-import { CozyProvider, Q, useClient } from 'cozy-client';
+import { CozyProvider, useClient } from 'cozy-client';
 import { getClient } from './src/getClient';
 import { triggerPouchReplication } from './src/utils';
+import { queryAllDoctype, querySingleDoc, queryWithSelector } from './src/queries';
+import { openDB } from './src/sqlite';
 
 const Tester = () => {
   const client  = useClient();
 
-  const doTest = async () => {
-    try {
 
-      console.log('doTest', client?.getStackClient().uri);
-      const begin = performance.now()
-      const result = await client?.query(Q('io.cozy.files').limitBy(100))
-      const end = performance.now()
-      console.log('⏰ duration:', (end - begin))
-  
-      console.log('🌈 result', result.data?.length)
+  const doQueryTest = async ({limit = 100, isSingleDoc = false, withSelector = false} = {}) => {
+    try {
+      console.log('-------------- doTest', client?.getStackClient().uri);
+
+      // Open db so it is done outside of query tests
+      openDB('io.cozy.files')
+
+      if (isSingleDoc) {
+        await querySingleDoc(client);
+      } else if(withSelector) {
+        await queryWithSelector(client)
+      } else {
+        await queryAllDoctype(client, limit);
+      }
+
     } catch (error) {
-      console.log('error', error)
+      console.log('error', error);
     }
   };
 
   return (
-    <Button title="small" onPress={() => doTest()} />
+    <View>
+      <Button title="Query 1" onPress={() => doQueryTest({isSingleDoc: true})} />
+      <Button title="Query 100 with index" onPress={() => doQueryTest({withSelector: true})} />
+      <Button title="Query 100 allDocs" onPress={() => doQueryTest({limit: 100})} />
+      <Button title="Query no limit" onPress={() => doQueryTest({limit: null})} />
+    </View>
   );
 };
 
@@ -59,14 +67,14 @@ const ClientHandler = () => {
   useEffect(() => {
     const handleClientInit = async () => {
       try {
-        console.log('🌈 getClient')
+        console.log('🌈 getClient');
         const existingClient = await getClient();
         // existingClient.startReplicationWithDebounce()
-        triggerPouchReplication(existingClient)
-        console.log('🌈 existingClient', existingClient)
+        triggerPouchReplication(existingClient);
+        console.log('🌈 existingClient', existingClient);
         setClient(existingClient || null);
       } catch (error) {
-        console.log('🌈 failed to get cient', error)
+        console.log('🌈 failed to get cient', error);
         setClient(null);
       }
     };
@@ -74,11 +82,11 @@ const ClientHandler = () => {
     handleClientInit();
   }, []);
 
-  console.log('client?', client)
+  console.log('client?', client);
   if (client) {
     return (
       <CozyProvider client={client}>
-          <Tester />
+        <Tester />
       </CozyProvider>
     );
   }
@@ -106,7 +114,7 @@ function App(): React.JSX.Element {
         <View
           style={{
             backgroundColor: '#FF0000',//isDarkMode ? Colors.black : Colors.white,
-            height: 150
+            height: 150,
           }}>
             <ClientHandler />
         </View>
